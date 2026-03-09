@@ -1,9 +1,6 @@
 name: Setup sccache cache
 description: Setup sccache cache
 inputs:
-  shell:
-    required: true
-    description: "Shell to use"
   s3_bucket:
     required: true
     description: S3 bucket for sccache
@@ -22,7 +19,7 @@ runs:
   using: "composite"
   steps:
     - name: Setup sccache environment variables
-      shell: ${{ inputs.shell }}
+      shell: bash
       env:
         SCCACHE_GHA_ENABLED: "false"
         SCCACHE_BUCKET: ${{ inputs.s3_bucket }}
@@ -40,7 +37,7 @@ runs:
         echo "___SCCACHE_COMMAND=${___SCCACHE_COMMAND}" >> $GITHUB_ENV
 
     - name: Start sccache server
-      shell: ${{ inputs.shell }}
+      shell: bash
       run: |
         set -xeo pipefail
         $___SCCACHE_COMMAND --start-server

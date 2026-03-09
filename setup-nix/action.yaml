@@ -21,7 +21,7 @@ inputs:
     required: true
     description: Public access key for Nix cache
 
-  s3_access_secret_key:
+  s3_secret_access_key:
     required: true
     description: Public secret key for Nix cache
 
@@ -41,7 +41,7 @@ runs:
       shell: bash
       env:
         AWS_ACCESS_KEY_ID: ${{ inputs.s3_access_key }}
-        AWS_SECRET_ACCESS_KEY: ${{ inputs.s3_access_secret_key }}
+        AWS_SECRET_ACCESS_KEY: ${{ inputs.s3_secret_access_key }}
         S3_CACHE_BUCKET: ${{ inputs.s3_bucket }}
         S3_CACHE_ENDPOINT: ${{ inputs.s3_endpoint }}
         S3_CACHE_NIX_PREFIX: ${{ inputs.s3_nix_prefix }}
