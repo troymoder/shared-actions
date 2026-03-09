@@ -23,7 +23,7 @@ runs:
       env:
         SCCACHE_GHA_ENABLED: "false"
         SCCACHE_BUCKET: ${{ inputs.s3_bucket }}
-        SCCACHE_ENDPOINT: ${{ inputs.s3_endpoint }}
+        SCCACHE_ENDPOINT: https://${{ inputs.s3_endpoint }}
         SCCACHE_S3_KEY_PREFIX: ${{ inputs.s3_sccache_prefix }}
         SCCACHE_REGION: auto
         ___SCCACHE_COMMAND: ${{ inputs.sccache_command }}
