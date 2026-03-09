@@ -1,0 +1,83 @@
+name: Setup Nix Cache
+description: Setup Nix cache
+inputs:
+  nix_cache_private_key:
+    required: false
+    description: Private key for Nix cache
+
+  nix_cache_public_key:
+    required: true
+    description: Public key for Nix cache
+
+  s3_bucket:
+    required: true
+    description: S3 bucket for Nix cache
+
+  s3_endpoint:
+    required: true
+    description: S3 endpoint for Nix cache
+
+  s3_access_key:
+    required: true
+    description: Public access key for Nix cache
+
+  s3_access_secret_key:
+    required: true
+    description: Public secret key for Nix cache
+
+  s3_public_url:
+    required: true
+    description: Public URL for Nix cache
+
+  s3_nix_prefix:
+    required: false
+    description: Prefix for Nix cache
+    default: "cache/nix"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Setup env variables
+      shell: bash
+      env:
+        AWS_ACCESS_KEY_ID: ${{ inputs.s3_access_key }}
+        AWS_SECRET_ACCESS_KEY: ${{ inputs.s3_access_secret_key }}
+        S3_CACHE_BUCKET: ${{ inputs.s3_bucket }}
+        S3_CACHE_ENDPOINT: ${{ inputs.s3_endpoint }}
+        S3_CACHE_NIX_PREFIX: ${{ inputs.s3_nix_prefix }}
+      run: |
+        set -xeo pipefail
+        echo "AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}" >> $GITHUB_ENV
+        echo "AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}" >> $GITHUB_ENV
+        echo "S3_CACHE_BUCKET=${S3_CACHE_BUCKET}" >> $GITHUB_ENV
+        echo "S3_CACHE_ENDPOINT=${S3_CACHE_ENDPOINT}" >> $GITHUB_ENV
+        echo "S3_CACHE_NIX_PREFIX=${S3_CACHE_NIX_PREFIX}" >> $GITHUB_ENV
+
+    - name: Setup nix cache private key
+      if: inputs.nix_cache_private_key != ''
+      shell: bash
+      env:
+        NIX_CACHE_PRIVATE_KEY: ${{ inputs.nix_cache_private_key }}
+      run: |
+        set -xeo pipefail
+        nix_private_key_file=$(mktemp)
+        printenv NIX_CACHE_PRIVATE_KEY >> $nix_private_key_file
+        echo "NIX_CACHE_PRIVATE_KEY_FILE=${nix_private_key_file}" >> $GITHUB_ENV
+
+    - name: Nix cache upload
+      uses: gacts/run-and-post-run@v1
+      if: inputs.nix_cache_private_key != ''
+      with:
+        post: exec ${{ github.action_path }}/scripts/nix-upload-cache.sh
+
+    - name: Install Nix
+      uses: cachix/install-nix-action@v25
+      with:
+        extra_nix_config: |
+          experimental-features = nix-command flakes
+          max-jobs = auto
+          http-connections = 128
+          connect-timeout = 5
+          substituters = https://cache.nixos.org https://${{ inputs.s3_public_url }}/${{ inputs.s3_nix_prefix }}
+          trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= ${{ inputs.nix_cache_public_key }}
+          post-build-hook = ${{ github.action_path }}/scripts/nix-post-build-hook.sh

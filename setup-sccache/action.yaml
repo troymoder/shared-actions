@@ -1,0 +1,52 @@
+name: Setup sccache cache
+description: Setup sccache cache
+inputs:
+  shell:
+    required: true
+    description: "Shell to use"
+  s3_bucket:
+    required: true
+    description: S3 bucket for sccache
+  s3_endpoint:
+    required: true
+    description: S3 endpoint for sccache
+  s3_sccache_prefix:
+    required: false
+    description: Prefix for sccache
+    default: "cache/sccache"
+  sccache_command:
+    required: false
+    description: Command to run sccache
+    default: "sccache"
+runs:
+  using: "composite"
+  steps:
+    - name: Setup sccache environment variables
+      shell: ${{ inputs.shell }}
+      env:
+        SCCACHE_GHA_ENABLED: "false"
+        SCCACHE_BUCKET: ${{ inputs.s3_bucket }}
+        SCCACHE_ENDPOINT: ${{ inputs.s3_endpoint }}
+        SCCACHE_S3_KEY_PREFIX: ${{ inputs.s3_sccache_prefix }}
+        SCCACHE_REGION: auto
+        ___SCCACHE_COMMAND: ${{ inputs.sccache_command }}
+      run: |
+        set -xeo pipefail
+        echo "SCCACHE_GHA_ENABLED=${SCCACHE_GHA_ENABLED}" >> $GITHUB_ENV
+        echo "SCCACHE_BUCKET=${SCCACHE_BUCKET}" >> $GITHUB_ENV
+        echo "SCCACHE_ENDPOINT=${SCCACHE_ENDPOINT}" >> $GITHUB_ENV
+        echo "SCCACHE_S3_KEY_PREFIX=${SCCACHE_S3_KEY_PREFIX}" >> $GITHUB_ENV
+        echo "SCCACHE_REGION=${SCCACHE_REGION}" >> $GITHUB_ENV
+        echo "___SCCACHE_COMMAND=${___SCCACHE_COMMAND}" >> $GITHUB_ENV
+
+    - name: Start sccache server
+      shell: ${{ inputs.shell }}
+      run: |
+        set -xeo pipefail
+        $___SCCACHE_COMMAND --start-server
+        $___SCCACHE_COMMAND -z
+
+    - name: Show sccache cache stats
+      uses: gacts/run-and-post-run@v1
+      with:
+        post: $___SCCACHE_COMMAND -s
